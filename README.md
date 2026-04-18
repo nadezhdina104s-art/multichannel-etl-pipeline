@@ -218,12 +218,16 @@ docker exec project_7_postgres psql -U postgres -d analytics -c "SELECT * FROM m
 
 ---
 
-## Лицензия
-
-MIT
-```
 ## 📫 Контакты
 
 - **GitHub:** [github.com/nadezhdina104s-art](https://github.com/nadezhdina104s-art)
 - **Telegram:** [@sweet100](https://t.me/sweet100)
 - **Email:** [nadezhdina_s@mail.ru](mailto:nadezhdina_s@mail.ru)
+
+
+```
+
+## Лицензия
+
+MIT
+```
