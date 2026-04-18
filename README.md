@@ -230,4 +230,3 @@ docker exec project_7_postgres psql -U postgres -d analytics -c "SELECT * FROM m
 ## Лицензия
 
 MIT
-
