@@ -1,0 +1,27 @@
+# Python
+__pycache__/
+*.pyc
+venv/
+.env
+.venv
+
+# Docker
+logs/
+postgres_data/
+
+# Data 
+data/raw/
+data/processed/
+data/mock/
+
+# Airflow logs
+logs/
+*.log
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db

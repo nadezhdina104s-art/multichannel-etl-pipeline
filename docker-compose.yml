@@ -1,0 +1,81 @@
+﻿x-airflow-common: &airflow-common
+  build: .
+  env_file: .env
+  environment:
+    WB_API_KEY: ${WB_API_KEY}
+    OZON_CLIENT_ID: ${OZON_CLIENT_ID}
+    OZON_API_KEY: ${OZON_API_KEY}
+    AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://postgres:${POSTGRES_PASSWORD:-postgres}@postgres/airflow
+    AIRFLOW__WEBSERVER__SECRET_KEY: ${AIRFLOW_SECRET_KEY:-my_secret_key_change_me}
+    AIRFLOW__CORE__FERNET_KEY: ${AIRFLOW_FERNET_KEY:-46BKJoQYfPPcCRbL7fE3R_3qZc8Jkzq4n5j6k7l8m9n0}
+    POSTGRES_HOST: postgres
+    POSTGRES_PORT: 5432
+    POSTGRES_DB: analytics
+    POSTGRES_USER: postgres
+    POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+  volumes:
+    - ./dags:/opt/airflow/dags
+    - ./scripts:/opt/airflow/scripts
+    - ./data:/opt/airflow/data
+    - ./sql:/opt/airflow/sql
+    - ./requirements.txt:/opt/airflow/requirements.txt
+
+services:
+  postgres:
+    image: postgres:15
+    container_name: project_7_postgres
+    environment:
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: analytics
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d analytics"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  airflow-init:
+    <<: *airflow-common
+    depends_on:
+      postgres:
+        condition: service_healthy
+    entrypoint: /bin/bash
+    command: >
+      -c "
+        set -e
+        PGPASSWORD=${POSTGRES_PASSWORD:-postgres} psql -h postgres -U postgres -d postgres -tc \"SELECT 1 FROM pg_database WHERE datname='airflow'\" | grep -q 1 || PGPASSWORD=${POSTGRES_PASSWORD:-postgres} psql -h postgres -U postgres -d postgres -c \"CREATE DATABASE airflow;\"
+        airflow db init
+        airflow users create --username airflow --password airflow --firstname Admin --lastname User --role Admin --email admin@example.com || true
+        python /opt/airflow/scripts/init_database.py
+        echo '✅ Инициализация завершена'
+      "
+    restart: "no"
+
+  airflow-webserver:
+    <<: *airflow-common
+    depends_on:
+      postgres:
+        condition: service_healthy
+      airflow-init:
+        condition: service_completed_successfully
+    ports:
+      - "8080:8080"
+    command: webserver
+    restart: unless-stopped
+
+  airflow-scheduler:
+    <<: *airflow-common
+    depends_on:
+      postgres:
+        condition: service_healthy
+      airflow-init:
+        condition: service_completed_successfully
+    command: scheduler
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
